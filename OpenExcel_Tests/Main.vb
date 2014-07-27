@@ -32,6 +32,8 @@ Public Class Main
             'sheet1.InsertLineBefore(25, 2)
 
             'sheet1.VisibleLine(20, False, 2)
+            sheet1.CopyInsertBeforeLine(1, 2)
+            sheet1.CopyInsertBeforeMultiLine(50, 52, 2, 4)
         End Using
 
         Using xls = Excel.Open("Excel.xlsx")

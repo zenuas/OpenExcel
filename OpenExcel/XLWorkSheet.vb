@@ -327,11 +327,57 @@ Public Class XLWorksheet
 
 #Region "multi-line operation"
 
+    ''' <summary>
+    ''' 前に複数行コピー追加
+    ''' </summary>
+    ''' <param name="from_start">コピー元開始</param>
+    ''' <param name="from_end">コピー元終了</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 行追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' コピー元の範囲内に追加位置を設定してはいけない
+    '''   from_start &lt; to_ &amp;&amp; to_ &lt; from_end の場合エラー
+    ''' </remarks>
     Public Overridable Sub CopyInsertBeforeMultiLine(ByVal from_start As UInteger, ByVal from_end As UInteger, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
 
-        Me.GetRow(from_start)
+        Dim length = count * (from_end - from_start + 1UI)
+        Me.InsertBeforeLine(to_, length)
+        If to_ <= from_start Then
+
+            from_start += length
+            from_end += length
+        End If
+
+        Dim after = Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value > to_).FirstOrDefault
+
+        For i = 0UI To count - 1UI
+
+            For Each row In Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value >= from_start AndAlso r.RowIndex.Value <= from_end)
+
+                Dim copy_row = CType(row.Clone, Row)
+                copy_row.RowIndex = to_ + (from_end - from_start + 1UI) * i + copy_row.RowIndex.Value - from_start
+                For Each c In copy_row.Elements(Of Cell)()
+
+                    Dim index = CellIndex.ConvertCellIndex(c.CellReference)
+                    c.CellReference = CellIndex.ToAddress(index.Column, copy_row.RowIndex.Value)
+                Next
+                Me.SheetData.InsertBefore(copy_row, after)
+            Next
+        Next
     End Sub
 
+    ''' <summary>
+    ''' 前に複数行コピー追加
+    ''' </summary>
+    ''' <param name="from">コピー元範囲</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 行追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' コピー元の範囲内に追加位置を設定してはいけない
+    '''   from開始 &lt; to_ &amp;&amp; to_ &lt; from終了 の場合エラー
+    ''' </remarks>
     Public Overridable Sub CopyInsertBeforeMultiLine(ByVal from As String, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
 
         Dim x = CellIndex.ConvertRange(from)
