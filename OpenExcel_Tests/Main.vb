@@ -6,10 +6,10 @@ Public Class Main
     Public Shared Sub Main()
 
 
-        Using xls = Excel.Create("dummy.xlsx")
+        'Using xls = Excel.Create("dummy.xlsx")
 
-            xls.NewSheet("Sheet1")
-        End Using
+        '    xls.NewSheet("Sheet1")
+        'End Using
         Using xls = Excel.Create("Excel.xlsx")
 
             Dim sheet1 = xls.NewSheet("Sheet1")
@@ -29,26 +29,26 @@ Public Class Main
 
                 sheet1.Cell("B", i) = "B" + i.ToString
             Next
-            'sheet1.InsertLineBefore(25, 2)
 
-            'sheet1.VisibleLine(20, False, 2)
+            sheet1.VisibleLine(20, False, 2)
             sheet1.CopyInsertBeforeLine(1, 2)
             sheet1.CopyInsertBeforeMultiLine(50, 52, 2, 4)
+            sheet1.CopyInsertBeforeMultiColumn("B:D", "A", 2)
         End Using
 
-        Using xls = Excel.Open("Excel.xlsx")
+        'Using xls = Excel.Open("Excel.xlsx")
 
-            Dim sheet2 = xls.WorkSheets("Sheet2")
-            sheet2.Cell("A1") = "test2"
+        '    Dim sheet2 = xls.WorkSheets("Sheet2")
+        '    sheet2.Cell("A1") = "test2"
 
-            For i = 2 To 100
+        '    For i = 2 To 100
 
-                sheet2.Cell(i, i) = CellIndex.ConvertColumnName(i) + i.ToString
-            Next
-            
-            xls.SaveAs("Excel2.xlsx")
+        '        sheet2.Cell(i, i) = CellIndex.ConvertColumnName(i) + i.ToString
+        '    Next
 
-        End Using
+        '    xls.SaveAs("Excel2.xlsx")
+
+        'End Using
 
         'Using doc = SpreadsheetDocument.Create("test.xlsx", SpreadsheetDocumentType.Workbook)
 

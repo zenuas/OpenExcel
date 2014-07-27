@@ -394,7 +394,7 @@ Public Class XLWorksheet
     ''' <param name="col">列位置(1列目から開始)</param>
     ''' <param name="count">対象列数</param>
     ''' <remarks>
-    ''' 行削除してもExcelのように式の範囲が自動再設定されない
+    ''' 列削除してもExcelのように式の範囲が自動再設定されない
     ''' </remarks>
     Public Overridable Sub DeleteColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
 
@@ -434,7 +434,7 @@ Public Class XLWorksheet
     ''' <param name="col">列位置(1列目から開始)</param>
     ''' <param name="count">追加列数</param>
     ''' <remarks>
-    ''' 行追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
     ''' </remarks>
     Public Overridable Sub InsertBeforeColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
 
@@ -448,17 +448,46 @@ Public Class XLWorksheet
         Next
     End Sub
 
+    ''' <summary>
+    ''' 前に列追加
+    ''' </summary>
+    ''' <param name="col">列名</param>
+    ''' <param name="count">追加列数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' </remarks>
     Public Overridable Sub InsertBeforeColumn(ByVal col As String, Optional ByVal count As UInteger = 1)
 
         Me.InsertBeforeColumn(CellIndex.ConvertColumnIndex(col), count)
     End Sub
 
+
+    ''' <summary>
+    ''' 前に列コピー追加
+    ''' </summary>
+    ''' <param name="from">コピー元</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' </remarks>
     Public Overridable Sub CopyInsertBeforeColumn(ByVal from As UInteger, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
 
+        Me.CopyInsertBeforeMultiColumn(from, from, to_, count)
     End Sub
 
+    ''' <summary>
+    ''' 前に列コピー追加
+    ''' </summary>
+    ''' <param name="from">コピー元</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' </remarks>
     Public Overridable Sub CopyInsertBeforeColumn(ByVal from As String, ByVal to_ As String, Optional ByVal count As UInteger = 1)
 
+        Me.CopyInsertBeforeColumn(CellIndex.ConvertColumnIndex(from), CellIndex.ConvertColumnIndex(to_), count)
     End Sub
 
     Public Overridable Sub VisibleColumn(ByVal col As UInteger, ByVal visible As Boolean, Optional ByVal count As UInteger = 1)
@@ -474,6 +503,89 @@ Public Class XLWorksheet
     Public Overridable Sub VisibleColumn(ByVal col As String, ByVal visible As Boolean, Optional ByVal count As UInteger = 1)
 
         Me.VisibleColumn(CellIndex.ConvertColumnIndex(col), visible, count)
+    End Sub
+
+#End Region
+
+#Region "multi-column operation"
+
+    ''' <summary>
+    ''' 前に複数列コピー追加
+    ''' </summary>
+    ''' <param name="from_start">コピー元開始</param>
+    ''' <param name="from_end">コピー元終了</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' コピー元の範囲内に追加位置を設定してはいけない
+    '''   from_start &lt; to_ &amp;&amp; to_ &lt; from_end の場合エラー
+    ''' </remarks>
+    Public Overridable Sub CopyInsertBeforeMultiColumn(ByVal from_start As UInteger, ByVal from_end As UInteger, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
+
+        Dim length = count * (from_end - from_start + 1UI)
+        Me.InsertBeforeColumn(to_, length)
+        If to_ <= from_start Then
+
+            from_start += length
+            from_end += length
+        End If
+
+        For i = 0UI To count - 1UI
+
+            For Each row In Me.SheetData.Elements(Of Row)()
+
+                Dim insert_to = to_ + (from_end - from_start + 1UI) * i
+                Dim after = row.Elements(Of Cell).Where(Function(c) CellIndex.ConvertCellIndex(c.CellReference).Column > insert_to).FirstOrDefault
+
+                For Each c In row.Elements(Of Cell).Where(
+                    Function(x)
+                        Dim ref = CellIndex.ConvertCellIndex(x.CellReference)
+                        Return ref.Column >= from_start AndAlso ref.Column <= from_end
+                    End Function)
+
+                    Dim copy_col = CType(c.Clone, Cell)
+                    Dim index = CellIndex.ConvertCellIndex(copy_col.CellReference)
+                    copy_col.CellReference = CellIndex.ToAddress(insert_to + index.Column - from_start, index.Row)
+
+                    row.InsertBefore(copy_col, after)
+                Next
+            Next
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' 前に複数列コピー追加
+    ''' </summary>
+    ''' <param name="from_start">コピー元開始</param>
+    ''' <param name="from_end">コピー元終了</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' コピー元の範囲内に追加位置を設定してはいけない
+    '''   from_start &lt; to_ &amp;&amp; to_ &lt; from_end の場合エラー
+    ''' </remarks>
+    Public Overridable Sub CopyInsertBeforeMultiColumn(ByVal from_start As String, ByVal from_end As String, ByVal to_ As String, Optional ByVal count As UInteger = 1)
+
+        Me.CopyInsertBeforeMultiColumn(CellIndex.ConvertColumnIndex(from_start), CellIndex.ConvertColumnIndex(from_end), CellIndex.ConvertColumnIndex(to_), count)
+    End Sub
+
+    ''' <summary>
+    ''' 前に複数列コピー追加
+    ''' </summary>
+    ''' <param name="from">コピー元範囲</param>
+    ''' <param name="to_">追加位置</param>
+    ''' <param name="count">コピー回数</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' コピー元の範囲内に追加位置を設定してはいけない
+    '''   from開始 &lt; to_ &amp;&amp; to_ &lt; from終了 の場合エラー
+    ''' </remarks>
+    Public Overridable Sub CopyInsertBeforeMultiColumn(ByVal from As String, ByVal to_ As String, Optional ByVal count As UInteger = 1)
+
+        Dim x = CellIndex.ConvertRange(from)
+        Me.CopyInsertBeforeMultiColumn(x.Item1, x.Item2, CellIndex.ConvertColumnIndex(to_), count)
     End Sub
 
 #End Region
