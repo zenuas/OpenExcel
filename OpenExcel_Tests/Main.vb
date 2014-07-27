@@ -24,6 +24,7 @@ Public Class Main
                 sheet1.Cell("D", i) = "D" + i.ToString
             Next
             sheet1.DeleteLine(15, 2)
+            sheet1.InsertBeforeColumn("B", 2)
             For i = 10 To 100
 
                 sheet1.Cell("B", i) = "B" + i.ToString
@@ -42,7 +43,7 @@ Public Class Main
 
                 sheet2.Cell(i, i) = CellIndex.ConvertColumnName(i) + i.ToString
             Next
-
+            
             xls.SaveAs("Excel2.xlsx")
 
         End Using

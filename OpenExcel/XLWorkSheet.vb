@@ -273,11 +273,10 @@ Public Class XLWorksheet
     ''' </summary>
     ''' <param name="row">追加位置</param>
     ''' <param name="count">追加行数</param>
-    ''' <returns>追加した最初の行データ</returns>
     ''' <remarks>
     ''' 行追加してもExcelのように式の範囲が自動再設定されない
     ''' </remarks>
-    Public Overridable Function InsertBeforeLine(ByVal row As UInteger, Optional ByVal count As UInteger = 1) As Row
+    Public Overridable Sub InsertBeforeLine(ByVal row As UInteger, Optional ByVal count As UInteger = 1)
 
         For Each x In Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value >= row).Reverse
 
@@ -288,18 +287,7 @@ Public Class XLWorksheet
                 c.CellReference = CellIndex.ToAddress(ref.Column, x.RowIndex.Value)
             Next
         Next
-
-        Dim before = Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value < row).LastOrDefault
-        Dim new_row As Row = Nothing
-        For i = 1UI To count
-
-            new_row = New Row
-            new_row.RowIndex = row + count - i
-            Me.SheetData.InsertAfter(new_row, before)
-        Next
-
-        Return new_row
-    End Function
+    End Sub
 
     ''' <summary>
     ''' 前に行コピー追加
@@ -359,7 +347,9 @@ Public Class XLWorksheet
     ''' </summary>
     ''' <param name="col">列位置(1列目から開始)</param>
     ''' <param name="count">対象列数</param>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' 行削除してもExcelのように式の範囲が自動再設定されない
+    ''' </remarks>
     Public Overridable Sub DeleteColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
 
         For Each r In Me.SheetData.Elements(Of Row)()
@@ -367,7 +357,7 @@ Public Class XLWorksheet
             For Each c In r.Elements(Of Cell).Where(
                 Function(x)
                     Dim index = CellIndex.ConvertCellIndex(x.CellReference)
-                    Return index.Column >= col AndAlso index.Column <= col + count - 1
+                    Return index.Column >= col AndAlso index.Column < col + count
                 End Function).Reverse
 
                 c.Remove()
@@ -392,8 +382,24 @@ Public Class XLWorksheet
         Me.DeleteColumn(CellIndex.ConvertColumnIndex(col), count)
     End Sub
 
+    ''' <summary>
+    ''' 前に列追加
+    ''' </summary>
+    ''' <param name="col">列位置(1列目から開始)</param>
+    ''' <param name="count">追加列数</param>
+    ''' <remarks>
+    ''' 行追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' </remarks>
     Public Overridable Sub InsertBeforeColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
 
+        For Each r In Me.SheetData.Elements(Of Row)()
+
+            For Each c In r.Elements(Of Cell).Where(Function(x) CellIndex.ConvertCellIndex(x.CellReference).Column >= col).Reverse
+
+                Dim index = CellIndex.ConvertCellIndex(c.CellReference)
+                c.CellReference = CellIndex.ToAddress(index.Column + count, index.Row)
+            Next
+        Next
     End Sub
 
     Public Overridable Sub InsertBeforeColumn(ByVal col As String, Optional ByVal count As UInteger = 1)

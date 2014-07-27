@@ -131,8 +131,10 @@ Public Class Excel
     ''' <param name="path">保存先</param>
     ''' <remarks>
     ''' 別名保存ができないので一旦上書きをさせてから、終了時にファイル移動を行っている
-    ''' そのため Create("a.xlsx") -> Save() -> SaveAs("b.xlsx") -> Dispose() と行うと
-    ''' b.xlsx のみが残る
+    ''' そのため最後に保存したファイル名のみが残る
+    '''   Create("a.xlsx") -> Save() -> SaveAs("b.xlsx") -> Dispose() と行うと b.xlsx のみが残る
+    '''   Create("a.xlsx") -> Save() -> SaveAs("b.xlsx") -> SaveAs("c.xlsx") -> Dispose() と行うと c.xlsx のみが残る
+    '''   Open("a.xlsx")   -> Save() -> SaveAs("b.xlsx") -> SaveAs("c.xlsx") -> Dispose() と行うと c.xlsx のみが残る
     ''' </remarks>
     Public Overridable Sub SaveAs(ByVal path As String)
 
