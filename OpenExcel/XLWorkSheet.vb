@@ -27,7 +27,7 @@ Public Class XLWorksheet
         End Get
     End Property
 
-    Public ReadOnly Property Columns As Columns
+    Public ReadOnly Property ColumnsData As Columns
         Get
             If Me.columns_ Is Nothing Then
 
@@ -35,7 +35,7 @@ Public Class XLWorksheet
                 If Me.columns_ Is Nothing Then
 
                     Me.columns_ = New Columns
-                    Me.Worksheet.Append(Me.columns_)
+                    Me.Worksheet.InsertBefore(Me.columns_, Me.SheetData)
                 End If
             End If
             Return Me.columns_
@@ -152,9 +152,9 @@ Public Class XLWorksheet
 
             x = New Row
             x.RowIndex = row
-
-            Dim before = Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value < row).LastOrDefault
-            Me.SheetData.InsertAfter(x, before)
+            
+            Dim after = Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value > row).FirstOrDefault
+            Me.SheetData.InsertBefore(x, after)
         End If
 
         Return x
@@ -243,6 +243,74 @@ Public Class XLWorksheet
 #Region "line operation"
 
     ''' <summary>
+    ''' 行セット取得
+    ''' </summary>
+    ''' <param name="row">行番号(1行目から開始)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Rows(ByVal row As UInteger) As XLRows
+        Get
+            Return New XLRows(Me, row, row)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 行セット取得
+    ''' </summary>
+    ''' <param name="from">行範囲開始(1行目から開始)</param>
+    ''' <param name="to_">行範囲終了(1行目から開始)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Rows(ByVal from As UInteger, ByVal to_ As UInteger) As XLRows
+        Get
+            Return New XLRows(Me, from, to_)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 行セット取得
+    ''' </summary>
+    ''' <param name="row">行番号(1行目から開始)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Rows(ByVal row As Integer) As XLRows
+        Get
+            Return New XLRows(Me, CUInt(row), CUInt(row))
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 行セット取得
+    ''' </summary>
+    ''' <param name="from">行範囲開始(1行目から開始)</param>
+    ''' <param name="to_">行範囲終了(1行目から開始)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Rows(ByVal from As Integer, ByVal to_ As Integer) As XLRows
+        Get
+            Return New XLRows(Me, CUInt(from), CUInt(to_))
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 行セット取得
+    ''' </summary>
+    ''' <param name="row">行番号(A:A形式)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Rows(ByVal row As String) As XLRows
+        Get
+            Dim x = CellIndex.ConvertRange(row)
+            Return New XLRows(Me, x.Item1, x.Item2)
+        End Get
+    End Property
+
+    ''' <summary>
     ''' 行削除
     ''' </summary>
     ''' <param name="row">削除対象行</param>
@@ -301,26 +369,6 @@ Public Class XLWorksheet
     Public Overridable Sub CopyInsertBeforeLine(ByVal from As UInteger, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
 
         Me.CopyInsertBeforeMultiLine(from, from, to_, count)
-    End Sub
-
-    ''' <summary>
-    ''' 行の表示設定
-    ''' </summary>
-    ''' <param name="row">行番号(1行目から開始)</param>
-    ''' <param name="visible">表示フラグ</param>
-    ''' <param name="count">対象行数</param>
-    ''' <remarks></remarks>
-    Public Overridable Sub VisibleLine(ByVal row As UInteger, ByVal visible As Boolean, Optional ByVal count As UInteger = 1)
-
-        'For Each x In Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value >= row AndAlso r.RowIndex.Value <= row + count - 1)
-
-        '    x.Hidden = Not visible
-        'Next
-
-        For i = 0UI To count - 1UI
-
-            Me.GetRow(row + i).Hidden = Not visible
-        Next
     End Sub
 
 #End Region
@@ -389,6 +437,20 @@ Public Class XLWorksheet
 #Region "column operation"
 
     ''' <summary>
+    ''' カラムセット取得
+    ''' </summary>
+    ''' <param name="col">列名(A:A形式)</param>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public ReadOnly Property Columns(ByVal col As String) As XLColumns
+        Get
+            Dim x = CellIndex.ConvertRange(col)
+            Return New XLColumns(Me, x.Item1, x.Item2)
+        End Get
+    End Property
+
+    ''' <summary>
     ''' 列削除
     ''' </summary>
     ''' <param name="col">列位置(1列目から開始)</param>
@@ -396,7 +458,7 @@ Public Class XLWorksheet
     ''' <remarks>
     ''' 列削除してもExcelのように式の範囲が自動再設定されない
     ''' </remarks>
-    Public Overridable Sub DeleteColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub DeleteColumn(ByVal col As UInteger, ByVal count As UInteger)
 
         For Each r In Me.SheetData.Elements(Of Row)()
 
@@ -423,9 +485,20 @@ Public Class XLWorksheet
     ''' <param name="col">列名</param>
     ''' <param name="count">対象列数</param>
     ''' <remarks></remarks>
-    Public Overridable Sub DeleteColumn(ByVal col As String, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub DeleteColumn(ByVal col As String, ByVal count As UInteger)
 
         Me.DeleteColumn(CellIndex.ConvertColumnIndex(col), count)
+    End Sub
+
+    ''' <summary>
+    ''' 列削除
+    ''' </summary>
+    ''' <param name="col">列名(A:A形式)</param>
+    ''' <remarks></remarks>
+    Public Overridable Sub DeleteColumn(ByVal col As String)
+
+        Dim x = CellIndex.ConvertRange(col)
+        Me.DeleteColumn(x.Item1, x.Item2 - x.Item1 + 1UI)
     End Sub
 
     ''' <summary>
@@ -436,7 +509,7 @@ Public Class XLWorksheet
     ''' <remarks>
     ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
     ''' </remarks>
-    Public Overridable Sub InsertBeforeColumn(ByVal col As UInteger, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub InsertBeforeColumn(ByVal col As UInteger, ByVal count As UInteger)
 
         For Each r In Me.SheetData.Elements(Of Row)()
 
@@ -446,6 +519,19 @@ Public Class XLWorksheet
                 c.CellReference = CellIndex.ToAddress(index.Column + count, index.Row)
             Next
         Next
+    End Sub
+
+    ''' <summary>
+    ''' 前に列追加
+    ''' </summary>
+    ''' <param name="col">列名(A:A形式)</param>
+    ''' <remarks>
+    ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
+    ''' </remarks>
+    Public Overridable Sub InsertBeforeColumn(ByVal col As String)
+
+        Dim x = CellIndex.ConvertRange(col)
+        Me.InsertBeforeColumn(x.Item1, x.Item2 - x.Item1 + 1UI)
     End Sub
 
     ''' <summary>
@@ -488,21 +574,6 @@ Public Class XLWorksheet
     Public Overridable Sub CopyInsertBeforeColumn(ByVal from As String, ByVal to_ As String, Optional ByVal count As UInteger = 1)
 
         Me.CopyInsertBeforeColumn(CellIndex.ConvertColumnIndex(from), CellIndex.ConvertColumnIndex(to_), count)
-    End Sub
-
-    Public Overridable Sub VisibleColumn(ByVal col As UInteger, ByVal visible As Boolean, Optional ByVal count As UInteger = 1)
-
-        ' Columnがなければ作る
-        ' Columnがあるが A:C (Column {Min=1, Max=3})になっており、 B列のみ非表示する場合割らないといけない？
-        For Each x In Me.Columns.Elements(Of Column).Where(Function(c) c.Min.Value >= col AndAlso c.Max.Value <= col + count - 1)
-
-            x.Hidden = Not visible
-        Next
-    End Sub
-
-    Public Overridable Sub VisibleColumn(ByVal col As String, ByVal visible As Boolean, Optional ByVal count As UInteger = 1)
-
-        Me.VisibleColumn(CellIndex.ConvertColumnIndex(col), visible, count)
     End Sub
 
 #End Region

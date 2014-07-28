@@ -30,51 +30,19 @@ Public Class Main
                 sheet1.Cell("B", i) = "B" + i.ToString
             Next
 
-            sheet1.VisibleLine(20, False, 2)
+            sheet1.Rows(20, 60).Hidden = True
             sheet1.CopyInsertBeforeLine(1, 2)
             sheet1.CopyInsertBeforeMultiLine(50, 52, 2, 4)
             sheet1.CopyInsertBeforeMultiColumn("B:D", "A", 2)
         End Using
 
-        'Using xls = Excel.Open("Excel.xlsx")
+        For Each x In New ITestExcel() {
+                New ColumnsTest
+            }
 
-        '    Dim sheet2 = xls.WorkSheets("Sheet2")
-        '    sheet2.Cell("A1") = "test2"
+            x.Exec(x.GetType.Name + ".xlsx")
 
-        '    For i = 2 To 100
+        Next
 
-        '        sheet2.Cell(i, i) = CellIndex.ConvertColumnName(i) + i.ToString
-        '    Next
-
-        '    xls.SaveAs("Excel2.xlsx")
-
-        'End Using
-
-        'Using doc = SpreadsheetDocument.Create("test.xlsx", SpreadsheetDocumentType.Workbook)
-
-        '    Dim book_part = doc.AddWorkbookPart
-        '    Dim sheet_part = book_part.AddNewPart(Of WorksheetPart)()
-
-        '    book_part.Workbook = New Workbook(
-        '        New Sheets(
-        '            New Sheet With
-        '            {
-        '                .Id = book_part.GetIdOfPart(sheet_part),
-        '                .SheetId = 1,
-        '                .Name = "test_sheet"
-        '            })
-        '        )
-        '    sheet_part.Worksheet = New Worksheet(
-        '        New SheetData(
-        '            New Row(
-        '                New Cell With
-        '                {
-        '                    .DataType = CellValues.String,
-        '                    .CellReference = "A1",
-        '                    .CellValue = New CellValue("test aa")
-        '                })
-        '            )
-        '        )
-        'End Using
     End Sub
 End Class

@@ -142,13 +142,25 @@ Public Class CellIndex
         If name(0) < "A"c OrElse name(0) > "Z"c Then
 
             start = ByIndex()
-            If name(i) = ":"c Then i += 1
-            end_ = ByIndex()
+            If i < name.Length AndAlso name(i) = ":"c Then
+
+                i += 1
+                end_ = ByIndex()
+            Else
+
+                end_ = start
+            End If
         Else
 
             start = ByName()
-            If name(i) = ":"c Then i += 1
-            end_ = ByName()
+            If i < name.Length AndAlso name(i) = ":"c Then
+
+                i += 1
+                end_ = ByName()
+            Else
+
+                end_ = start
+            End If
         End If
 
         Return Tuple.Create(start, end_)

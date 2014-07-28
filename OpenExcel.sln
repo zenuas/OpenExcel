@@ -1,8 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.21005.1
-MinimumVisualStudioVersion = 10.0.40219.1
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "OpenExcel", "OpenExcel\OpenExcel.vbproj", "{A9F75C3C-C155-4609-9822-13BD84C99881}"
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "OpenExcel_Tests", "OpenExcel_Tests\OpenExcel_Tests.vbproj", "{DAED3364-6021-4DA2-8EA6-7B9C83E82145}"
