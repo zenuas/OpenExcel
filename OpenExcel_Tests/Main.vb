@@ -1,4 +1,5 @@
 ﻿Imports OpenExcel
+Imports DocumentFormat.OpenXml
 Imports DocumentFormat.OpenXml.Spreadsheet
 
 
@@ -31,8 +32,11 @@ Public Class Main
             sheet1.CopyInsertBeforeMultiLine(50, 52, 2, 4)
             sheet1.CopyInsertBeforeMultiColumn("B:D", "A", 2)
 
+            sheet1.Cell("B17") = "B17"
             Dim cell = sheet1.CellValue("B17")
             cell.Style.TopBorder.Style = BorderStyleValues.Thin
+            cell.Style.PatternFill.PatternType = PatternValues.Solid
+            cell.Style.PatternFill.ForegroundColor = New ForegroundColor() With {.Rgb = HexBinaryValue.FromString("ffff00")}
             cell.UpdateStyle()
         End Using
 

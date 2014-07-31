@@ -28,7 +28,7 @@ Public Class XLStylesheet
         ' Microsoft Excel 2010、2013で現象確認
         Me.CellFormats.Append(New CellFormat() With {.FontId = 0, .FillId = 0, .BorderId = 0})
         Me.Fonts.Append(New Font())
-        Me.Fills.Append(New Fill())
+        Me.Fills.Append(New Fill(), New Fill())
         Me.Borders.Append(New Border())
     End Sub
 
