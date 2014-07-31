@@ -1,19 +1,32 @@
-﻿Imports System.Linq
+﻿Imports System
+Imports System.Linq
+Imports DocumentFormat.OpenXml
 Imports DocumentFormat.OpenXml.Spreadsheet
 
 
 Public Class XLWorksheet
 
+    Private xls_ As XLWorkbook
     Private worksheet_ As Worksheet
-    Private sheet_ As SheetData
+    Private sheet_ As SheetData = Nothing
     Private columns_ As Columns = Nothing
+    Private merge_cells_ As MergeCells = Nothing
 
-    Public Sub New(ByVal worksheet As Worksheet)
+    Public Sub New(ByVal xls As XLWorkbook, ByVal worksheet As Worksheet)
         MyBase.New()
 
+        Me.xls_ = xls
         Me.worksheet_ = worksheet
-        Me.sheet_ = worksheet.Descendants(Of SheetData).First
+        If Me.sheet_ Is Nothing Then Me.sheet_ = Me.AppendWorkheetElement(Function() New SheetData)
     End Sub
+
+#Region "property"
+
+    Public ReadOnly Property Workbook As XLWorkbook
+        Get
+            Return Me.xls_
+        End Get
+    End Property
 
     Public ReadOnly Property Worksheet As Worksheet
         Get
@@ -29,29 +42,62 @@ Public Class XLWorksheet
 
     Public ReadOnly Property ColumnsData As Columns
         Get
-            If Me.columns_ Is Nothing Then
-
-                Me.columns_ = Me.Worksheet.Descendants(Of Columns).FirstOrDefault
-                If Me.columns_ Is Nothing Then
-
-                    Me.columns_ = New Columns
-                    Me.Worksheet.InsertBefore(Me.columns_, Me.SheetData)
-                End If
-            End If
+            If Me.columns_ Is Nothing Then Me.columns_ = Me.AppendWorkheetElement(Function() New Columns)
             Return Me.columns_
         End Get
     End Property
+
+    Public ReadOnly Property MergeCellsData As MergeCells
+        Get
+            If Me.merge_cells_ Is Nothing Then Me.merge_cells_ = Me.AppendWorkheetElement(Function() New MergeCells)
+            Return Me.merge_cells_
+        End Get
+    End Property
+
+    Public Overridable Function AppendWorkheetElement(Of T As OpenXmlElement)(ByVal f As Func(Of T)) As T
+
+        Dim x = Me.Worksheet.Where(Function(e) TypeOf e Is T).FirstOrDefault
+        If x IsNot Nothing Then Return CType(x, T)
+        Return CType(Me.AppendWorkheetElement(f()), T)
+    End Function
+
+    Public Overridable Function AppendWorkheetElement(ByVal child As OpenXmlElement) As OpenXmlElement
+
+        Dim xs = CType(Me.Worksheet.GetType.GetCustomAttributes(GetType(ChildElementInfoAttribute), True), ChildElementInfoAttribute())
+        Dim find = False
+        For i As Integer = xs.Length - 1 To 0 Step -1
+
+            Dim x = xs(i).ElementType
+            If find Then
+
+                Dim before = Me.Worksheet.Where(Function(c) c.GetType Is x).FirstOrDefault
+                If before IsNot Nothing Then
+
+                    Me.Worksheet.InsertAfter(child, before)
+                    Return child
+                End If
+            Else
+
+                If child.GetType Is x Then find = True
+            End If
+        Next
+
+        Me.Worksheet.InsertAfter(child, Nothing)
+        Return child
+    End Function
+
+#End Region
 
 #Region "cell operation"
 
     ''' <summary>
     ''' セルプロパティ
     ''' </summary>
-    ''' <param name="name">A1形式のセル名</param>
+    ''' <param name="name">セル位置</param>
     ''' <value></value>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public Overridable Property Cell(ByVal name As String) As String
+    Public Overridable Property Cell(ByVal name As CellIndex) As String
         Get
             Return Me.GetCell(name).CellValue.InnerText
         End Get
@@ -152,7 +198,7 @@ Public Class XLWorksheet
 
             x = New Row
             x.RowIndex = row
-            
+
             Dim after = Me.SheetData.Elements(Of Row).Where(Function(r) r.RowIndex.Value > row).FirstOrDefault
             Me.SheetData.InsertBefore(x, after)
         End If
@@ -163,15 +209,14 @@ Public Class XLWorksheet
     ''' <summary>
     ''' セル取得
     ''' </summary>
-    ''' <param name="name">A1形式のセル名</param>
+    ''' <param name="name">セル位置</param>
     ''' <returns></returns>
     ''' <remarks>
     ''' セルデータがない場合はセルを追加する
     ''' </remarks>
-    Public Overridable Function GetCell(ByVal name As String) As Cell
+    Public Overridable Function GetCell(ByVal name As CellIndex) As Cell
 
-        Dim x = CellIndex.ConvertCellIndex(name)
-        Return Me.GetCell(Me.GetRow(x.Row), name)
+        Return Me.GetCell(Me.GetRow(name.Row), name)
     End Function
 
     ''' <summary>
@@ -206,13 +251,14 @@ Public Class XLWorksheet
     ''' セル取得
     ''' </summary>
     ''' <param name="row">行データ</param>
-    ''' <param name="name">A1形式のセル名</param>
+    ''' <param name="index">セル位置</param>
     ''' <returns></returns>
     ''' <remarks>
     ''' セルデータがない場合はセルを追加する
     ''' </remarks>
-    Public Overridable Function GetCell(ByVal row As Row, ByVal name As String) As Cell
+    Public Overridable Function GetCell(ByVal row As Row, ByVal index As CellIndex) As Cell
 
+        Dim name = index.ToAddress
         Dim x = row.Elements(Of Cell).Where(Function(c) name.Equals(c.CellReference.Value)).FirstOrDefault
         If x Is Nothing Then
 
@@ -234,9 +280,19 @@ Public Class XLWorksheet
 
     'End Sub
 
-    'Public Overridable Sub DeleteCell(ByVal name As String)
+    'Public Overridable Sub DeleteCell(ByVal name As CellIndex)
 
     'End Sub
+
+#End Region
+
+#Region "extend cell operation"
+
+    Public Overridable ReadOnly Property CellValue(ByVal name As CellIndex) As XLCell
+        Get
+            Return New XLCell(Me, name)
+        End Get
+    End Property
 
 #End Region
 
@@ -299,14 +355,13 @@ Public Class XLWorksheet
     ''' <summary>
     ''' 行セット取得
     ''' </summary>
-    ''' <param name="row">行番号(A:A形式)</param>
+    ''' <param name="row">行番号</param>
     ''' <value></value>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public ReadOnly Property Rows(ByVal row As String) As XLRows
+    Public ReadOnly Property Rows(ByVal row As RowColRange) As XLRows
         Get
-            Dim x = CellIndex.ConvertRange(row)
-            Return New XLRows(Me, x.Item1, x.Item2)
+            Return New XLRows(Me, row.From, row.To)
         End Get
     End Property
 
@@ -426,10 +481,9 @@ Public Class XLWorksheet
     ''' コピー元の範囲内に追加位置を設定してはいけない
     '''   from開始 &lt; to_ &amp;&amp; to_ &lt; from終了 の場合エラー
     ''' </remarks>
-    Public Overridable Sub CopyInsertBeforeMultiLine(ByVal from As String, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub CopyInsertBeforeMultiLine(ByVal from As RowColRange, ByVal to_ As UInteger, Optional ByVal count As UInteger = 1)
 
-        Dim x = CellIndex.ConvertRange(from)
-        Me.CopyInsertBeforeMultiLine(x.Item1, x.Item2, to_, count)
+        Me.CopyInsertBeforeMultiLine(from.From, from.To, to_, count)
     End Sub
 
 #End Region
@@ -439,14 +493,13 @@ Public Class XLWorksheet
     ''' <summary>
     ''' カラムセット取得
     ''' </summary>
-    ''' <param name="col">列名(A:A形式)</param>
+    ''' <param name="col">列名</param>
     ''' <value></value>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public ReadOnly Property Columns(ByVal col As String) As XLColumns
+    Public ReadOnly Property Columns(ByVal col As RowColRange) As XLColumns
         Get
-            Dim x = CellIndex.ConvertRange(col)
-            Return New XLColumns(Me, x.Item1, x.Item2)
+            Return New XLColumns(Me, col.From, col.To)
         End Get
     End Property
 
@@ -493,12 +546,11 @@ Public Class XLWorksheet
     ''' <summary>
     ''' 列削除
     ''' </summary>
-    ''' <param name="col">列名(A:A形式)</param>
+    ''' <param name="col">列名</param>
     ''' <remarks></remarks>
-    Public Overridable Sub DeleteColumn(ByVal col As String)
+    Public Overridable Sub DeleteColumn(ByVal col As RowColRange)
 
-        Dim x = CellIndex.ConvertRange(col)
-        Me.DeleteColumn(x.Item1, x.Item2 - x.Item1 + 1UI)
+        Me.DeleteColumn(col.From, col.To - col.From + 1UI)
     End Sub
 
     ''' <summary>
@@ -524,14 +576,13 @@ Public Class XLWorksheet
     ''' <summary>
     ''' 前に列追加
     ''' </summary>
-    ''' <param name="col">列名(A:A形式)</param>
+    ''' <param name="col">列名</param>
     ''' <remarks>
     ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
     ''' </remarks>
-    Public Overridable Sub InsertBeforeColumn(ByVal col As String)
+    Public Overridable Sub InsertBeforeColumn(ByVal col As RowColRange)
 
-        Dim x = CellIndex.ConvertRange(col)
-        Me.InsertBeforeColumn(x.Item1, x.Item2 - x.Item1 + 1UI)
+        Me.InsertBeforeColumn(col.From, col.To - col.From + 1UI)
     End Sub
 
     ''' <summary>
@@ -542,7 +593,7 @@ Public Class XLWorksheet
     ''' <remarks>
     ''' 列追加してもExcelのように式の範囲が自動再設定されない、式は再計算されない
     ''' </remarks>
-    Public Overridable Sub InsertBeforeColumn(ByVal col As String, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub InsertBeforeColumn(ByVal col As String, ByVal count As UInteger)
 
         Me.InsertBeforeColumn(CellIndex.ConvertColumnIndex(col), count)
     End Sub
@@ -653,10 +704,9 @@ Public Class XLWorksheet
     ''' コピー元の範囲内に追加位置を設定してはいけない
     '''   from開始 &lt; to_ &amp;&amp; to_ &lt; from終了 の場合エラー
     ''' </remarks>
-    Public Overridable Sub CopyInsertBeforeMultiColumn(ByVal from As String, ByVal to_ As String, Optional ByVal count As UInteger = 1)
+    Public Overridable Sub CopyInsertBeforeMultiColumn(ByVal from As RowColRange, ByVal to_ As String, Optional ByVal count As UInteger = 1)
 
-        Dim x = CellIndex.ConvertRange(from)
-        Me.CopyInsertBeforeMultiColumn(x.Item1, x.Item2, CellIndex.ConvertColumnIndex(to_), count)
+        Me.CopyInsertBeforeMultiColumn(from.From, from.To, CellIndex.ConvertColumnIndex(to_), count)
     End Sub
 
 #End Region

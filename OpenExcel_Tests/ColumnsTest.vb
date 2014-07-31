@@ -7,7 +7,7 @@ Public Class ColumnsTest
 
     Public Overridable Sub Exec(ByVal path As String) Implements ITestExcel.Exec
 
-        Using xls = Excel.Create(path)
+        Using xls = XLWorkbook.Create(path)
 
             Dim sheet1 = xls.NewSheet("Sheet1")
 

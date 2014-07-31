@@ -7,7 +7,7 @@ Imports DocumentFormat.OpenXml.Spreadsheet
 
 
 <Assembly: System.Reflection.AssemblyVersion("0.0.*")> 
-Public Class Excel
+Public Class XLWorkbook
     Implements IDisposable
 
 #Region "constructor"
@@ -22,13 +22,12 @@ Public Class Excel
     ''' <param name="path">保存先</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public Shared Function Create(ByVal path As String) As Excel
+    Public Shared Function Create(ByVal path As String) As XLWorkbook
 
-        Dim self = New Excel
+        Dim self = New XLWorkbook
         self.iscreate_ = True
         self.SavePath = path
         self.original_path_ = path
-        self.xls_ = SpreadsheetDocument.Create(path, SpreadsheetDocumentType.Workbook)
         self.Init()
         Return self
     End Function
@@ -40,10 +39,9 @@ Public Class Excel
     ''' <param name="auto_save">自動保存指定</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public Shared Function Open(ByVal path As String, Optional ByVal auto_save As Boolean = False) As Excel
+    Public Shared Function Open(ByVal path As String, Optional ByVal auto_save As Boolean = False) As XLWorkbook
 
-
-        Dim self = New Excel
+        Dim self = New XLWorkbook
         self.iscreate_ = False
         If Not auto_save Then
 
@@ -63,10 +61,10 @@ Public Class Excel
     ''' <summary>
     ''' ブックの初期化を行い空のシートを作成する
     ''' </summary>
-    ''' <param name="sheet_name">初期作成シート名</param>
     ''' <remarks></remarks>
-    Public Overridable Sub Init(Optional ByVal sheet_name As String = "Sheet1")
+    Public Overridable Sub Init()
 
+        Me.xls_ = SpreadsheetDocument.Create(Me.SavePath, SpreadsheetDocumentType.Workbook)
         If Me.Document.WorkbookPart Is Nothing Then
 
             Dim book_part = Me.Document.AddWorkbookPart
@@ -80,7 +78,7 @@ Public Class Excel
         Me.sheets_.Clear()
         For Each sheet_part In Me.Document.WorkbookPart.WorksheetParts
 
-            Me.sheets_.Add(sheet_part.Worksheet, New XLWorksheet(sheet_part.Worksheet))
+            Me.sheets_.Add(sheet_part.Worksheet, New XLWorksheet(Me, sheet_part.Worksheet))
         Next
     End Sub
 
@@ -91,6 +89,7 @@ Public Class Excel
     Private iscreate_ As Boolean
     Private original_path_ As String
     Private xls_ As SpreadsheetDocument
+    Private style_ As XLStylesheet = Nothing
     Private sheets_ As New Dictionary(Of Worksheet, XLWorksheet)
 
     Public Overridable ReadOnly Property OriginalPath As String
@@ -111,6 +110,21 @@ Public Class Excel
 
         Return Me.sheets_(sheet)
     End Function
+
+    Public Overridable ReadOnly Property Stylesheet() As XLStylesheet
+        Get
+            If Me.style_ Is Nothing Then
+
+                Dim styles_part = Me.Document.WorkbookPart.GetPartsOfType(Of WorkbookStylesPart).FirstOrDefault()
+                If styles_part Is Nothing Then styles_part = Me.Document.WorkbookPart.AddNewPart(Of WorkbookStylesPart)()
+                If styles_part.Stylesheet Is Nothing Then styles_part.Stylesheet = New Stylesheet
+
+                Me.style_ = New XLStylesheet(Me, styles_part.Stylesheet)
+            End If
+
+            Return Me.style_
+        End Get
+    End Property
 
 #End Region
 
@@ -148,7 +162,7 @@ Public Class Excel
 
 #Region "sheet operation"
 
-    Public Overridable ReadOnly Property WorkSheets(ByVal sheet_name As String) As XLWorksheet
+    Public Overridable ReadOnly Property Worksheets(ByVal sheet_name As String) As XLWorksheet
         Get
             Return Me.GetSheetByName(sheet_name)
         End Get
@@ -220,8 +234,7 @@ Public Class Excel
         End If
 
         Dim sheet_part = Me.Document.WorkbookPart.AddNewPart(Of WorksheetPart)()
-        Dim sheet_data = New SheetData
-        sheet_part.Worksheet = New Worksheet(sheet_data)
+        sheet_part.Worksheet = New Worksheet()
         Dim sheet = New Sheet With
             {
                 .Id = Me.Document.WorkbookPart.GetIdOfPart(sheet_part),
@@ -238,7 +251,7 @@ Public Class Excel
             Me.Document.WorkbookPart.Workbook.Sheets.InsertBefore(sheet, before)
         End If
 
-        Dim x = New XLWorksheet(sheet_part.Worksheet)
+        Dim x = New XLWorksheet(Me, sheet_part.Worksheet)
         Me.sheets_.Add(sheet_part.Worksheet, x)
         Return x
     End Function

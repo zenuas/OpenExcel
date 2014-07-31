@@ -1,16 +1,12 @@
 ﻿Imports OpenExcel
+Imports DocumentFormat.OpenXml.Spreadsheet
 
 
 Public Class Main
 
     Public Shared Sub Main()
 
-
-        'Using xls = Excel.Create("dummy.xlsx")
-
-        '    xls.NewSheet("Sheet1")
-        'End Using
-        Using xls = Excel.Create("Excel.xlsx")
+        Using xls = XLWorkbook.Create("Excel.xlsx")
 
             Dim sheet1 = xls.NewSheet("Sheet1")
             Dim sheet2 = xls.NewSheet("Sheet2")
@@ -34,6 +30,10 @@ Public Class Main
             sheet1.CopyInsertBeforeLine(1, 2)
             sheet1.CopyInsertBeforeMultiLine(50, 52, 2, 4)
             sheet1.CopyInsertBeforeMultiColumn("B:D", "A", 2)
+
+            Dim cell = sheet1.CellValue("B17")
+            cell.Style.TopBorder.Style = BorderStyleValues.Thin
+            cell.UpdateStyle()
         End Using
 
         For Each x In New ITestExcel() {

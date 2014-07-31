@@ -24,6 +24,11 @@ Public Class CellIndex
         End Get
     End Property
 
+    Public Shared Widening Operator CType(ByVal name As String) As CellIndex
+
+        Return ConvertCellIndex(name)
+    End Operator
+
     Public Shared Function ConvertColumnName(ByVal col As Integer) As String
 
         Return ConvertColumnName(CUInt(col))
@@ -87,12 +92,17 @@ Public Class CellIndex
         Return New CellIndex(col, row)
     End Function
 
+    Public Function ToAddress() As String
+
+        Return ToAddress(Me.Column, Me.Row)
+    End Function
+
     Public Shared Function ToAddress(ByVal col As Integer, ByVal row As Integer) As String
 
         Return ToAddress(CUInt(col), CUInt(row))
     End Function
 
-    Public Shared Function Format(ByVal col As String, ByVal row As Integer) As String
+    Public Shared Function ToAddress(ByVal col As String, ByVal row As Integer) As String
 
         Return ToAddress(col, CUInt(row))
     End Function
@@ -105,65 +115,6 @@ Public Class CellIndex
     Public Shared Function ToAddress(ByVal col As String, ByVal row As UInteger) As String
 
         Return String.Format("{0}{1}", col, row)
-    End Function
-
-    Public Shared Function ConvertRange(ByVal name As String) As Tuple(Of UInteger, UInteger)
-
-        Dim i = 0
-        Dim ByIndex = Function()
-
-                          Dim c = 0UI
-                          While i < name.Length
-
-                              If name(i) < "0"c OrElse name(i) > "9"c Then Exit While
-                              c = c * 10UI + (Convert.ToUInt32(name(i)) - Convert.ToUInt32("0"c))
-                              i += 1
-                          End While
-
-                          Return c
-                      End Function
-
-        Dim ByName = Function()
-
-                         Dim c = 0UI
-                         While i < name.Length
-
-                             If name(i) < "A"c OrElse name(i) > "Z"c Then Exit While
-                             c = c * 26UI + (Convert.ToUInt32(name(i)) - Convert.ToUInt32("A"c) + 1UI)
-                             i += 1
-                         End While
-
-                         Return c
-                     End Function
-
-        Dim start = 0UI
-        Dim end_ = 0UI
-        name = name.ToUpper
-        If name(0) < "A"c OrElse name(0) > "Z"c Then
-
-            start = ByIndex()
-            If i < name.Length AndAlso name(i) = ":"c Then
-
-                i += 1
-                end_ = ByIndex()
-            Else
-
-                end_ = start
-            End If
-        Else
-
-            start = ByName()
-            If i < name.Length AndAlso name(i) = ":"c Then
-
-                i += 1
-                end_ = ByName()
-            Else
-
-                end_ = start
-            End If
-        End If
-
-        Return Tuple.Create(start, end_)
     End Function
 
 End Class

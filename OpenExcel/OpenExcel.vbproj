@@ -69,11 +69,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CellIndex.vb" />
-    <Compile Include="Excel.vb" />
+    <Compile Include="CellRange.vb" />
+    <Compile Include="XLBorder.vb" />
+    <Compile Include="XLStyle.vb" />
+    <Compile Include="XLStylesheet.vb" />
+    <Compile Include="RowColRange.vb" />
+    <Compile Include="XLCell.vb" />
     <Compile Include="XLColumn.vb" />
     <Compile Include="XLColumns.vb" />
     <Compile Include="XLRow.vb" />
     <Compile Include="XLRows.vb" />
+    <Compile Include="XLWorkbook.vb" />
     <Compile Include="XLWorksheet.vb" />
     <Compile Include="XmlUtility.vb" />
   </ItemGroup>
